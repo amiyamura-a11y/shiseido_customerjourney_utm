@@ -85,6 +85,36 @@ pytest は合成データによる単体テスト（行動順序・欠損・繰�
 
 レスポンスには対象者数 n、各指標の分母、人数、率、適用したフィルタ／パス定義、打ち切り情報（censoring）、注記（notes）を含みます。
 
-## 8. 既知の制約・未解決事項
+## 8. Webデプロイ（GitHub からの自動デプロイ）
+
+GitHub Pages は静的サイト専用のため、本アプリ（Python バックエンド必須）は **Docker イメージ** としてデプロイします。リポジトリ直下の `Dockerfile` は Next.js を静的書き出し（`NEXT_OUTPUT=export`）し、FastAPI が API と画面を同一オリジンで配信します（ポート `PORT`、既定 8000）。
+
+### 8.1 認証
+公開URLに置く場合は必ず環境変数 `APP_USER` / `APP_PASSWORD` を設定してください。設定すると全ページ・全APIが HTTP Basic 認証で保護されます（`/api/health` のみ除外）。
+
+### 8.2 データの扱い（重要）
+**このリポジトリは public です。** `data/raw/` は `.gitignore` 済みで、個票CSV・Excel はリポジトリにも GitHub Actions で作るイメージにも含まれません。デプロイ後に画面07「データ・変数定義」の **CSV/Excelアップロード** から4ファイルを投入してください。アップロードした CSV は `data/raw` が空のとき同ディレクトリに保存されるため、永続ディスクをマウントしていれば再起動後も保持されます。
+
+### 8.3 Render（推奨・最短）
+1. Render で New → Blueprint → このリポジトリを選択（`render.yaml` を自動検出）。
+2. Environment に `APP_USER` / `APP_PASSWORD` を設定。永続化したい場合は Disk を `/app/data` にマウント。
+3. デプロイ完了後、発行URLを開き、画面07からデータをアップロード。以後 `git push` のたびに自動再デプロイ。
+
+### 8.4 GitHub Container Registry（任意のホストで）
+`.github/workflows/docker-image.yml` が push ごとに `ghcr.io/<owner>/shiseido_customerjourney_utm:<branch>` を作成します。Cloud Run／Azure Container Apps／Fly.io 等でこのイメージを指定し、`PORT`（Cloud Run は 8080）と認証用環境変数を設定、`/app/data` にボリュームをマウントしてください。
+
+```bash
+# Cloud Run の例
+gcloud run deploy ultimune-journey --image ghcr.io/amiyamura-a11y/shiseido_customerjourney_utm:claude-epic-keller-tbdwep \
+  --region asia-northeast1 --port 8080 --memory 2Gi --set-env-vars APP_USER=...,APP_PASSWORD=...
+```
+
+### 8.5 ローカルで Docker 実行
+```bash
+docker build -t utm-journey .
+docker run -p 8000:8000 -e APP_USER=demo -e APP_PASSWORD=secret -v "$PWD/data:/app/data" utm-journey
+```
+
+## 9. 既知の制約・未解決事項
 
 `docs/data_inspection_report.md` を参照してください。

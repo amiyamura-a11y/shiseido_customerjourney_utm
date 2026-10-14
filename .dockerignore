@@ -1,0 +1,9 @@
+.git
+**/node_modules
+frontend/.next
+frontend/out
+backend/.venv
+**/__pycache__
+data/processed
+data/uploads
+docs

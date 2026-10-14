@@ -1,0 +1,16 @@
+# Render Blueprint: https://render.com/docs/blueprint-spec
+# Deploys the Docker image built from this repository. Set APP_USER / APP_PASSWORD in the dashboard.
+services:
+  - type: web
+    name: ultimune-journey-analytics
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: APP_USER
+        sync: false
+      - key: APP_PASSWORD
+        sync: false
+      - key: PORT
+        value: "8000"

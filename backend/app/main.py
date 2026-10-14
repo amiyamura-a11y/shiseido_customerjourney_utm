@@ -6,8 +6,13 @@ import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, File, HTTPException, Query, UploadFile
+import os
+import secrets
+
+from fastapi import FastAPI, File, HTTPException, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse, Response
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from . import config
@@ -30,6 +35,29 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="ULTIMUNE | Journey Analytics API", version="1.0.0", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+# --- optional HTTP Basic auth for hosted deployments (set APP_USER / APP_PASSWORD) ---------
+_AUTH_USER = os.environ.get("APP_USER", "")
+_AUTH_PASSWORD = os.environ.get("APP_PASSWORD", "")
+
+
+@app.middleware("http")
+async def basic_auth_middleware(request: Request, call_next):
+    if _AUTH_PASSWORD and not request.url.path.startswith("/api/health"):
+        header = request.headers.get("authorization", "")
+        ok = False
+        if header.lower().startswith("basic "):
+            import base64
+
+            try:
+                raw = base64.b64decode(header.split(" ", 1)[1]).decode("utf-8")
+                user, _, pw = raw.partition(":")
+                ok = secrets.compare_digest(user, _AUTH_USER) and secrets.compare_digest(pw, _AUTH_PASSWORD)
+            except Exception:
+                ok = False
+        if not ok:
+            return Response(status_code=401, headers={"WWW-Authenticate": 'Basic realm="ULTIMUNE Journey Analytics"'}, content="認証が必要です")
+    return await call_next(request)
 
 
 def _ds():
@@ -183,7 +211,17 @@ async def api_upload(file: UploadFile = File(...)):
             state.csv_override = None
             state.load(force=False)
             raise HTTPException(400, f"CSVの読み込みに失敗しました: {state.error}")
-        return {"ok": True, "saved_to": str(dest), "role": "csv", "meta": state.meta()}
+        persisted = None
+        if not any(p.suffix.lower() == ".csv" for p in config.RAW_DIR.glob("*") if p.is_file()):
+            # no CSV under data/raw yet: keep a copy there so the data survives a restart (never overwrites)
+            target = config.RAW_DIR / name
+            if not target.exists():
+                target.write_bytes(content)
+                persisted = str(target)
+                state.csv_override = None
+                state.load(force=False)
+        return {"ok": True, "saved_to": persisted or str(dest), "role": "csv", "persisted": persisted is not None,
+                "message": None if persisted else "data/raw に既存CSVがあるため、このセッションのみ差し替えました（再起動後は data/raw のCSVに戻ります）", "meta": state.meta()}
     if lower.endswith(".xlsx"):
         # Excel files are copied next to the raw inputs only if the role is recognisable; raw files are never overwritten
         role = "main_xlsx" if "パス分析結果" in name else "additional_xlsx" if "追加集計" in name else "processing_xlsx" if "行動変数加工" in name else None
@@ -196,3 +234,14 @@ async def api_upload(file: UploadFile = File(...)):
         state.load(force=True)
         return {"ok": True, "saved_to": str(target), "role": role, "meta": state.meta()}
     raise HTTPException(400, "CSV または XLSX をアップロードしてください")
+
+
+# --- static frontend (built with `npm run build:static` -> frontend/out) ---------------------
+_STATIC_DIR = Path(os.environ.get("STATIC_DIR", str(config.PROJECT_DIR / "frontend" / "out")))
+if _STATIC_DIR.exists():
+
+    @app.get("/", include_in_schema=False)
+    def _root():
+        return RedirectResponse("/golden-path/")
+
+    app.mount("/", StaticFiles(directory=str(_STATIC_DIR), html=True), name="static")
