@@ -117,11 +117,11 @@ body {
 /* react-flow overrides */
 .react-flow__attribution { display: none; }
 .react-flow__edge-path { stroke: #8a8a98; }
-.gp-node { border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: #fff; font-weight: 700; border: 2px solid rgba(255,255,255,.9); box-shadow: 0 1px 2px rgba(0,0,0,.12); cursor: pointer; transition: transform .12s; }
+.gp-node { border-radius: 9px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: #fff; font-weight: 700; border: 2px solid rgba(255,255,255,.9); box-shadow: 0 1px 2px rgba(0,0,0,.12); cursor: pointer; transition: transform .12s; }
 .gp-node:hover { transform: scale(1.04); }
 .gp-node.selected { outline: 3px solid var(--n1250); outline-offset: 2px; }
 .gp-node.dimmed { opacity: .28; }
-.gp-node .lbl { font-size: 10.5px; line-height: 1.15; word-break: break-all; padding: 0 6px; }
+.gp-node .lbl { font-size: 10.5px; line-height: 1.15; word-break: break-all; padding: 0 8px; }
 .gp-node .pct { font-size: 10px; font-weight: 600; opacity: .95; margin-top: 2px; }
 
 .scroll-x { overflow-x: auto; }

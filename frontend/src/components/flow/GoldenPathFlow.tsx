@@ -43,11 +43,12 @@ interface Props {
   compact?: boolean;
 }
 
-const COL_W = 200;
-const D_MIN = 46;
-const D_MAX = 118;
+const COL_W = 236;
+const NODE_W = 168;
+const H_MIN = 40;
+const H_MAX = 108;
 const HEADER_H = 46;
-const GAP = 14;
+const GAP = 12;
 
 type GpNodeData = { gn: GraphNode; d: number; selected: boolean; dimmed: boolean; onClick?: () => void; onHover?: (gn: GraphNode | null, e?: React.MouseEvent) => void };
 type GpEdgeData = { ge: GraphEdge; width: number; dimmed: boolean; selected: boolean; showLabel: boolean; onClick?: () => void };
@@ -56,28 +57,28 @@ function GpNode({ data }: NodeProps<Node<GpNodeData>>) {
   const { gn, d, selected, dimmed } = data;
   const isOutcome = gn.kind === "outcome";
   const bg = colorFor(gn.label);
-  const style: React.CSSProperties = isOutcome
-    ? { width: 132, height: 58, borderRadius: 10, background: bg }
-    : { width: d, height: d, background: bg };
+  const m = isOutcome ? null : gn.label.match(/^(.*) (\d+回目)$/);
+  const base = m ? m[1] : gn.label;
+  const sub = isOutcome ? `${num(gn.count)}人` : `${m ? `${m[2]} · ` : ""}${pct(gn.rate, 1)}`;
   return (
     <div
       className={`gp-node ${selected ? "selected" : ""} ${dimmed ? "dimmed" : ""}`}
-      style={style}
+      style={{ width: NODE_W, height: d, borderRadius: 9, background: bg }}
       onClick={data.onClick}
       onMouseEnter={(e) => data.onHover?.(gn, e)}
       onMouseMove={(e) => data.onHover?.(gn, e)}
       onMouseLeave={() => data.onHover?.(null)}
     >
       <Handle type="target" position={Position.Left} style={{ opacity: 0, pointerEvents: "none" }} />
-      <div className="lbl" style={{ fontSize: d < 60 && !isOutcome ? 9 : 10.5 }}>{isOutcome ? gn.label : gn.label.replace(/ \d+回目$/, "")}</div>
-      <div className="pct">{isOutcome ? `${num(gn.count)}人` : `${(gn.label.match(/ (\d+回目)$/)?.[1] ?? "") ? `${gn.label.match(/ (\d+回目)$/)![1]} · ` : ""}${pct(gn.rate, 0)}`}</div>
+      <div className="lbl" style={{ fontSize: 10.5, maxHeight: d - 18, overflow: "hidden" }}>{base}</div>
+      <div className="pct">{sub}</div>
       <Handle type="source" position={Position.Right} style={{ opacity: 0, pointerEvents: "none" }} />
     </div>
   );
 }
 
 function GpEdge({ id, sourceX, sourceY, targetX, targetY, data, markerEnd }: EdgeProps<Edge<GpEdgeData>>) {
-  const [path, lx, ly] = getBezierPath({ sourceX, sourceY, targetX, targetY, sourcePosition: Position.Right, targetPosition: Position.Left, curvature: 0.35 });
+  const [path, lx, ly] = getBezierPath({ sourceX, sourceY, targetX, targetY, sourcePosition: Position.Right, targetPosition: Position.Left, curvature: 0.5 });
   const d = data!;
   const stroke = d.selected ? "#101016" : "#8a8a98";
   return (
@@ -128,7 +129,7 @@ function Inner({ graph, selectedNodes, selectedEdges, onNodeClick, onEdgeClick, 
       if (order) arr.sort((a, b) => order.indexOf(a.label) - order.indexOf(b.label));
       else arr.sort((a, b) => (a.kind === "outcome" && b.kind === "outcome" ? outcomeRank(a.label) - outcomeRank(b.label) : b.count - a.count));
     }
-    const diam = (n: GraphNode) => (n.kind === "outcome" ? 58 : Math.round(D_MIN + (D_MAX - D_MIN) * Math.sqrt(Math.min(1, (n.rate ?? 0) / maxRate))));
+    const diam = (n: GraphNode) => (n.kind === "outcome" ? 58 : Math.round(H_MIN + (H_MAX - H_MIN) * Math.min(1, (n.rate ?? 0) / maxRate)));
     const colHeights = new Map<number, number>();
     for (let k = 1; k <= colCount; k++) {
       const arr = byCol.get(k) ?? [];
@@ -139,11 +140,11 @@ function Inner({ graph, selectedNodes, selectedEdges, onNodeClick, onEdgeClick, 
     const nodeSize = new Map<string, { x: number; y: number; d: number }>();
     for (let k = 1; k <= colCount; k++) {
       const arr = byCol.get(k) ?? [];
-      const cx = 80 + (k - 1) * COL_W;
+      const cx = 100 + (k - 1) * COL_W;
       let y = HEADER_H + (maxH - (colHeights.get(k) ?? 0)) / 2;
       for (const n of arr) {
         const d = diam(n);
-        const w = n.kind === "outcome" ? 132 : d;
+        const w = NODE_W;
         const x = cx - w / 2;
         nodeSize.set(n.id, { x, y, d });
         const key = `${n.step}:${n.label}`;

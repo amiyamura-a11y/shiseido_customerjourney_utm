@@ -105,7 +105,7 @@ export default function GoldenPathPage() {
     <>
       <Header
         title="Golden Path"
-        sub="STEP 1 → … → Outcome｜ノード面積＝経験率（分母：フィルタ対象者数）｜エッジ幅＝遷移人数｜ラベル＝条件付き遷移率｜クリックで絞り込み"
+        sub="STEP 1 → … → Outcome｜ノードの高さ＝経験率（分母：フィルタ対象者数）｜エッジ幅＝遷移人数｜ラベル＝条件付き遷移率｜クリックで絞り込み"
         actions={
           <div className="flex gap-1">
             <Button size="sm" onClick={() => flowRef.current?.exportPng("golden_path.png")} title="図全体をPNG出力"><ImageIcon size={12} /> PNG</Button>
