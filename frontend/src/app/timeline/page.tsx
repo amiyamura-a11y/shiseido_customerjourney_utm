@@ -1,10 +1,10 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Header } from "@/components/layout/Header";
 import { FilterBar } from "@/components/layout/FilterBar";
 import { Card, Kpi, Notes, StateBox } from "@/components/ui/primitives";
 import { DataTable } from "@/components/ui/DataTable";
-import { DailyLines, Heatmap } from "@/components/charts/Charts";
+import { Heatmap } from "@/components/charts/Charts";
 import { api, ApiError, type TimelineResponse } from "@/lib/api";
 import { useFilters } from "@/store/filters";
 import { num, pct } from "@/lib/format";
@@ -22,19 +22,10 @@ export default function TimelinePage() {
     api.timeline(filters, topN).then((d) => { if (c) return; setData(d); setState(d.n === 0 ? "empty" : "ready"); }).catch((e) => { if (c) return; setError(e instanceof ApiError ? e.message : String(e)); setState("error"); });
     return () => { c = true; };
   }, [filters, topN]);
-  const lineData = useMemo(() => {
-    if (!data) return [];
-    const keys = Object.keys(data.daily_by_label);
-    return data.daily.map((d) => {
-      const row: Record<string, number | null> = { day: d.day, 全行動: d.rate };
-      for (const k of keys) row[k] = data.daily_by_label[k].find((x) => x.day === d.day)?.rate ?? null;
-      return row;
-    });
-  }, [data]);
   const daysAxis = Array.from({ length: 31 }, (_, i) => 30 - i);
   return (
     <>
-      <Header title="時系列分析" sub="D−30〜D−0 のカテゴリ別ヒートマップ・日別経験率・時期別ランキング・観測期間別比較" actions={data ? <button className="btn btn-sm" onClick={() => downloadCsv("timeline_heatmap.csv", ["行動", ...daysAxis.map((d) => `D-${d}`)], data.heatmap.map((r) => [r.label, ...r.cells.map((c) => c.count)]), { filters: JSON.stringify(filters), n: data.n, 値: "ユニーク人数" })}>CSV</button> : null} />
+      <Header title="時系列分析" sub="D−30〜D−0 のカテゴリ別ヒートマップ・時期別ランキング・観測期間別比較" actions={data ? <button className="btn btn-sm" onClick={() => downloadCsv("timeline_heatmap.csv", ["行動", ...daysAxis.map((d) => `D-${d}`)], data.heatmap.map((r) => [r.label, ...r.cells.map((c) => c.count)]), { filters: JSON.stringify(filters), n: data.n, 値: "ユニーク人数" })}>CSV</button> : null} />
       <FilterBar show={{ timing: false, dedupe: false, pathMode: false }} />
       <StateBox state={state} error={error}>
         {data && (
@@ -48,10 +39,7 @@ export default function TimelinePage() {
             <Card title="カテゴリ × 日（D−n）ヒートマップ" sub="セル＝その日に当該行動を経験したユニーク人数÷n。ホバーで数値。" className="mb-3">
               <Heatmap rows={data.heatmap} days={daysAxis} />
             </Card>
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <Card title="日別経験率の推移" sub="全行動と上位カテゴリ（ユニーク人数÷n）">
-                <DailyLines data={lineData} series={["全行動", ...Object.keys(data.daily_by_label)]} height={260} />
-              </Card>
+            <div className="mb-3">
               <Card title="時期別ランキング" sub="各ウィンドウ内に1回以上経験したユニーク人数÷n">
                 <div className="grid grid-cols-3 gap-2">
                   {data.window_rankings.map((w) => (
