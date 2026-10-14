@@ -35,6 +35,8 @@ export const api = {
   detail: (body: { filters: Filters; path: string[]; examples?: number }) => request<DetailResponse>("/api/paths/detail", { method: "POST", body: JSON.stringify(body) }),
   timeline: (filters: Filters, top_n = 15) => request<TimelineResponse>("/api/timeline", { method: "POST", body: JSON.stringify({ filters, top_n }) }),
   labels: (granularity: string) => request<{ labels: string[] }>(`/api/labels?granularity=${granularity}`),
+  observedLabels: (filters: Filters) => request<{ labels: string[]; base_labels: string[] }>("/api/labels", { method: "POST", body: JSON.stringify({ filters }) }),
+  groupsPreview: (filters: Filters) => request<{ groups: Record<string, { variables: number; events: number; persons: number }>; candidates: { variables: string[]; categories: string[]; broads: string[] } }>("/api/groups/preview", { method: "POST", body: JSON.stringify({ filters }) }),
   dictionary: () => request<DictionaryResponse>("/api/dictionary"),
   validation: () => request<ValidationResponse>("/api/validation"),
   reload: () => request<Meta>("/api/reload?force=true", { method: "POST" }),

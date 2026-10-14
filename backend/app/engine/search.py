@@ -144,6 +144,7 @@ def path_detail(ds: Dataset, req: PathDetailRequest) -> dict[str, Any]:
                     step_dn[i].append(seq[j][1])
         if len(examples) < req.examples:
             raw = ds.raw_sequences[pid]
+            step_label = {st: lab for lab, _dn, st in seq}
             examples.append({
                 "person": f"匿名 #{pid}",
                 "age_group": pidx.at[pid, "age_group"],
@@ -151,7 +152,7 @@ def path_detail(ds: Dataset, req: PathDetailRequest) -> dict[str, Any]:
                 "duration_days": int(pidx.at[pid, "duration_days"]),
                 "action_count": int(pidx.at[pid, "recorded_action_count"]),
                 "matched_positions": pos,
-                "sequence": [{"step": st, "dn": dn, "variable": v, "category": ds.dictionary.variable_to_category.get(v, "未分類"), "label": view.label_of(v), "repeat": rp} for v, dn, st, rp in raw],
+                "sequence": [{"step": st, "dn": dn, "variable": v, "category": ds.dictionary.variable_to_category.get(v, "未分類"), "label": step_label.get(st, "（統合／フィルタで除外）"), "repeat": rp} for v, dn, st, rp in raw],
             })
     # segment comparison
     segs = []

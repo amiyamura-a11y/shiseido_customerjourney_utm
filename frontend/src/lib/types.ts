@@ -6,6 +6,18 @@ export type Granularity = "variable" | "category" | "broad";
 export type Dedupe = "keep_all" | "collapse_consecutive" | "first_only";
 export type PathMode = "consecutive" | "ordered";
 
+export type MatchType = "select" | "prefix" | "contains" | "regex";
+
+export interface GroupRule {
+  name: string;
+  enabled: boolean;
+  members: string[];
+  match_type: MatchType;
+  pattern: string;
+  dn_min: number | null;
+  dn_max: number | null;
+}
+
 export interface Filters {
   age: Age;
   result: Result;
@@ -18,6 +30,10 @@ export interface Filters {
   granularity: Granularity;
   dedupe: Dedupe;
   path_mode: PathMode;
+  groups: GroupRule[];
+  grouping_enabled: boolean;
+  collapse_groups: boolean;
+  show_repeat: boolean;
 }
 
 export interface GraphNode {

@@ -69,8 +69,8 @@ function GpNode({ data }: NodeProps<Node<GpNodeData>>) {
       onMouseLeave={() => data.onHover?.(null)}
     >
       <Handle type="target" position={Position.Left} style={{ opacity: 0, pointerEvents: "none" }} />
-      <div className="lbl" style={{ fontSize: d < 60 && !isOutcome ? 9 : 10.5 }}>{gn.label}</div>
-      <div className="pct">{isOutcome ? `${num(gn.count)}人` : pct(gn.rate, 0)}</div>
+      <div className="lbl" style={{ fontSize: d < 60 && !isOutcome ? 9 : 10.5 }}>{isOutcome ? gn.label : gn.label.replace(/ \d+回目$/, "")}</div>
+      <div className="pct">{isOutcome ? `${num(gn.count)}人` : `${(gn.label.match(/ (\d+回目)$/)?.[1] ?? "") ? `${gn.label.match(/ (\d+回目)$/)![1]} · ` : ""}${pct(gn.rate, 0)}`}</div>
       <Handle type="source" position={Position.Right} style={{ opacity: 0, pointerEvents: "none" }} />
     </div>
   );

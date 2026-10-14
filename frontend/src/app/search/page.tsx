@@ -30,8 +30,8 @@ export default function SearchPage() {
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
-    api.labels(filters.granularity).then((r) => setLabels(r.labels));
-  }, [filters.granularity]);
+    api.observedLabels(filters).then((r) => setLabels(r.labels)).catch(() => setLabels([]));
+  }, [filters]);
 
   useEffect(() => {
     let c = false;

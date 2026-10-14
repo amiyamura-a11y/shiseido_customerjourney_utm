@@ -28,6 +28,26 @@ TIMING_PRESETS: dict[str, tuple[int | None, int | None]] = {
 }
 
 
+MatchType = Literal["select", "prefix", "contains", "regex"]
+
+
+class GroupRule(BaseModel):
+    """A user-defined group that merges arbitrary variables/categories under one label.
+
+    * members: exact names (individual variables, analysis categories or broad categories)
+    * pattern: optional name pattern applied to the individual variable name
+    * dn_min/dn_max: optional D−n window (only actions in this window join the group)
+    """
+
+    name: str = Field(min_length=1, max_length=60)
+    enabled: bool = True
+    members: list[str] = Field(default_factory=list)
+    match_type: MatchType = "select"
+    pattern: str = ""
+    dn_min: int | None = Field(default=None, ge=0, le=365)
+    dn_max: int | None = Field(default=None, ge=0, le=365)
+
+
 class Filters(BaseModel):
     age: Age = "all"
     result: Result = "all"
@@ -40,6 +60,13 @@ class Filters(BaseModel):
     granularity: Granularity = "category"
     dedupe: Dedupe = "keep_all"
     path_mode: PathMode = "consecutive"
+    groups: list[GroupRule] = Field(default_factory=list)
+    grouping_enabled: bool = True
+    collapse_groups: bool = Field(default=False, description="連続する同一グループを1つに集約")
+    show_repeat: bool = Field(default=False, description="表示名に n回目 を付ける")
+
+    def active_groups(self) -> list["GroupRule"]:
+        return [g for g in self.groups if g.enabled and g.name.strip()] if self.grouping_enabled else []
 
     def duration_range(self) -> tuple[int | None, int | None]:
         if self.duration_preset == "custom":
@@ -55,7 +82,8 @@ class Filters(BaseModel):
         return (self.age, self.result, self.duration_range())
 
     def sequence_key(self) -> tuple:
-        return (self.timing_range(), self.granularity, self.dedupe)
+        groups = tuple((g.name, tuple(sorted(g.members)), g.match_type, g.pattern, g.dn_min, g.dn_max) for g in self.active_groups())
+        return (self.timing_range(), self.granularity, self.dedupe, groups, self.collapse_groups, self.show_repeat)
 
     def describe(self) -> dict:
         d_lo, d_hi = self.duration_range()
@@ -69,4 +97,7 @@ class Filters(BaseModel):
             "granularity": self.granularity,
             "dedupe": self.dedupe,
             "path_mode": self.path_mode,
+            "groups": [g.name for g in self.active_groups()],
+            "collapse_groups": self.collapse_groups,
+            "show_repeat": self.show_repeat,
         }

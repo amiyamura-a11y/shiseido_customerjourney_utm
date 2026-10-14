@@ -7,6 +7,7 @@ of persons in the view (``n``) unless stated otherwise in the response.
 """
 from __future__ import annotations
 
+import re
 import threading
 from collections import OrderedDict
 from dataclasses import dataclass, field
@@ -109,6 +110,15 @@ class Dataset:
             return self.categories
         return self.broads
 
+    def observed_labels(self, f: Filters) -> list[str]:
+        """Labels actually present in the filtered view (groups / n回目 included), sorted by frequency."""
+        v = self.view(f)
+        counts: dict[str, int] = {}
+        for seq in v.sequences.values():
+            for lab, _, _ in seq:
+                counts[lab] = counts.get(lab, 0) + 1
+        return [k for k, _ in sorted(counts.items(), key=lambda x: (-x[1], x[0]))]
+
     # ---- person-level filtering ----------------------------------------
     def select_persons(self, f: Filters) -> np.ndarray:
         p = self.persons
@@ -124,26 +134,98 @@ class Dataset:
             mask &= (p["duration_days"] <= hi).to_numpy()
         return p.loc[mask, "person_id"].to_numpy()
 
+    # ---- grouping -------------------------------------------------------
+    def group_matcher(self, f: Filters) -> Callable[[str, int], str | None]:
+        """Return fn(variable, dn) -> group name or None for the active group rules."""
+        rules = []
+        for g in f.active_groups():
+            members = set(g.members)
+            rx = None
+            if g.match_type == "regex" and g.pattern:
+                try:
+                    rx = re.compile(g.pattern)
+                except re.error:
+                    rx = None
+            rules.append((g, members, rx))
+        if not rules:
+            return lambda v, dn: None
+        cat = self.dictionary.variable_to_category
+        broad = self.dictionary.variable_to_broad
+
+        def match(v: str, dn: int) -> str | None:
+            for g, members, rx in rules:
+                if g.dn_min is not None and dn < g.dn_min:
+                    continue
+                if g.dn_max is not None and dn > g.dn_max:
+                    continue
+                hit = False
+                if members and (v in members or cat.get(v) in members or broad.get(v) in members):
+                    hit = True
+                elif g.match_type == "prefix" and g.pattern and v.startswith(g.pattern):
+                    hit = True
+                elif g.match_type == "contains" and g.pattern and g.pattern in v:
+                    hit = True
+                elif g.match_type == "regex" and rx is not None and rx.search(v):
+                    hit = True
+                if hit:
+                    return g.name
+            return None
+
+        return match
+
+    def group_members_count(self, f: Filters) -> dict[str, dict[str, int]]:
+        """How many variables / events / persons each active group captures (ignores timing filter)."""
+        match = self.group_matcher(f)
+        out: dict[str, dict[str, Any]] = {g.name: {"variables": set(), "events": 0, "persons": set()} for g in f.active_groups()}
+        for pid, seq in self.raw_sequences.items():
+            for v, dn, _st, _rp in seq:
+                name = match(v, dn)
+                if name is not None:
+                    out[name]["variables"].add(v)
+                    out[name]["events"] += 1
+                    out[name]["persons"].add(pid)
+        return {k: {"variables": len(d["variables"]), "events": d["events"], "persons": len(d["persons"])} for k, d in out.items()}
+
     # ---- sequence building ---------------------------------------------
-    def build_sequence(self, pid: int, f: Filters, label_of: Callable[[str], str]) -> list[SeqItem]:
+    def build_sequence(self, pid: int, f: Filters, label_of: Callable[[str], str], group_of: Callable[[str, int], str | None] | None = None) -> list[SeqItem]:
+        """Label every action of a person, then apply same-action handling, repeat numbering and the timing window.
+
+        Occurrence numbers (n回目) are counted over the person's whole journey (before the
+        timing window) so that "2回目" always means the second time in the journey.
+        """
         lo, hi = f.timing_range()
-        out: list[SeqItem] = []
+        group_of = group_of or (lambda v, dn: None)
+        group_names = {g.name for g in f.active_groups()}
+        labelled: list[tuple[str, int, int]] = []
         last: str | None = None
         seen: set[str] = set()
         for v, dn, st, _rp in self.raw_sequences.get(pid, []):
-            if lo is not None and dn < lo:
-                continue
-            if hi is not None and dn > hi:
-                continue
-            lab = label_of(v)
+            g = group_of(v, dn)
+            lab = g if g is not None else label_of(v)
             if f.dedupe == "collapse_consecutive" and lab == last:
+                continue
+            if f.collapse_groups and lab in group_names and lab == last:
                 continue
             if f.dedupe == "first_only":
                 if lab in seen:
                     continue
                 seen.add(lab)
-            out.append((lab, dn, st))
+            labelled.append((lab, dn, st))
             last = lab
+        if f.show_repeat:
+            counts: dict[str, int] = {}
+            numbered: list[tuple[str, int, int]] = []
+            for lab, dn, st in labelled:
+                counts[lab] = counts.get(lab, 0) + 1
+                numbered.append((f"{lab} {counts[lab]}回目", dn, st))
+            labelled = numbered
+        out: list[SeqItem] = []
+        for lab, dn, st in labelled:
+            if lo is not None and dn < lo:
+                continue
+            if hi is not None and dn > hi:
+                continue
+            out.append((lab, dn, st))
         return out
 
     def view(self, f: Filters, person_ids: Iterable[int] | None = None) -> View:
@@ -153,8 +235,15 @@ class Dataset:
             return cached
         pids = self.select_persons(f) if person_ids is None else np.array(sorted(person_ids), dtype=int)
         label_of = self.label_mapper(f.granularity)
-        seqs = {int(pid): self.build_sequence(int(pid), f, label_of) for pid in pids}
+        group_of = self.group_matcher(f)
+        seqs = {int(pid): self.build_sequence(int(pid), f, label_of, group_of) for pid in pids}
         notes = []
+        if f.active_groups():
+            notes.append("変数統合: " + "、".join(g.name for g in f.active_groups()) + "（統合ルールに一致した行動はグループ名で表示）")
+        if f.collapse_groups and f.active_groups():
+            notes.append("連続する同一グループを1つに集約")
+        if f.show_repeat:
+            notes.append("表示名の「n回目」は本人のジャーニー全体における当該行動の出現回数（行動発生時期フィルタ適用前に採番）")
         t_lo, t_hi = f.timing_range()
         if not (t_lo is None and t_hi is None):
             notes.append("行動発生時期フィルタ適用後の隣接（期間内抽出後の隣接）。元ログでの真の連続パスとは異なります。")

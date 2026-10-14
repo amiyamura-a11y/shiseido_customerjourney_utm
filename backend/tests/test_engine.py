@@ -133,3 +133,28 @@ def test_compare_and_timeline(synth_ds):
     t = timeline(synth_ds, TimelineRequest(filters=Filters(granularity="category")))
     day = next(x for x in t["daily"] if x["day"] == 0)
     assert day["count"] == 2
+
+
+def test_show_repeat_and_groups(synth_ds):
+    from app.filters import Filters, GroupRule
+    f = Filters(granularity="category", show_repeat=True)
+    v = synth_ds.view(f)
+    assert [x[0] for x in v.sequences[4]] == ["悩み・成分・カテゴリ検索 1回目", "大手EC_Amazon 1回目", "大手EC_Amazon 2回目", "資生堂_公式EC 1回目", "UTM指名検索 1回目", "資生堂_公式EC 2回目"]
+    # occurrence numbers are assigned before the timing window
+    f2 = Filters(granularity="category", show_repeat=True, timing_preset="7-0")
+    assert [x[0] for x in synth_ds.view(f2).sequences[4]] == ["UTM指名検索 1回目", "資生堂_公式EC 2回目"]
+    # grouping by member selection (variable + category names) and collapse of consecutive group items
+    g = GroupRule(name="EC行動", members=["外部サイト_大衆向けEC_Amazon", "資生堂_公式EC"])
+    f3 = Filters(granularity="category", groups=[g], collapse_groups=True)
+    assert [x[0] for x in synth_ds.view(f3).sequences[4]] == ["悩み・成分・カテゴリ検索", "EC行動", "UTM指名検索", "EC行動"]
+    # prefix pattern + D-n window
+    g2 = GroupRule(name="直前検索", match_type="prefix", pattern="検索_", dn_min=0, dn_max=7)
+    f4 = Filters(granularity="variable", groups=[g2])
+    labs = [x[0] for x in synth_ds.view(f4).sequences[4]]
+    assert labs[0] == "検索_効能/肌悩み系_乾燥" and labs[4] == "直前検索"
+    counts = synth_ds.group_members_count(f4)
+    assert counts["直前検索"]["events"] >= 1
+    assert "直前検索" in synth_ds.observed_labels(f4)
+    # disabled grouping leaves labels untouched
+    f5 = f3.model_copy(update={"grouping_enabled": False})
+    assert "EC行動" not in synth_ds.observed_labels(f5)

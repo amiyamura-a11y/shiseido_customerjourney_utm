@@ -27,16 +27,18 @@ export default function EntryPage() {
   const [validation, setValidation] = useState<ValidationResponse | null>(null);
 
   useEffect(() => {
-    api.entryOptions(filters.granularity).then((r) => {
-      setOptions(r.options);
+    api.observedLabels(filters).then((r) => {
+      const groupLabel = filters.granularity === "variable" ? "個別変数" : filters.granularity === "category" ? "分析カテゴリ" : "大分類";
+      const opts = [...(filters.granularity === "variable" && !filters.show_repeat ? [{ value: WORRY, label: WORRY, group: "統合" }] : []), ...r.labels.map((l) => ({ value: l, label: l, group: groupLabel }))];
+      setOptions(opts);
       setAnchor((a) => {
-        if (r.options.some((o) => o.value === a)) return a;
-        const prefer = [WORRY, "悩み・成分・カテゴリ検索", "検索_効能/肌悩み系_エイジング", "検索"];
-        return prefer.map((p) => r.options.find((o) => o.value === p)?.value).find(Boolean) ?? r.options[0]?.value ?? "";
+        if (opts.some((o) => o.value === a)) return a;
+        const prefer = [WORRY, "悩み・成分・カテゴリ検索", "悩み・成分・カテゴリ検索 1回目", "検索_効能/肌悩み系_エイジング", "検索"];
+        return prefer.map((p) => opts.find((o) => o.value === p)?.value).find(Boolean) ?? opts[0]?.value ?? "";
       });
-    });
+    }).catch(() => setOptions([]));
     api.labels("category").then((r) => setCategories(r.labels));
-  }, [filters.granularity]);
+  }, [filters]);
 
   useEffect(() => {
     if (!anchor) return;

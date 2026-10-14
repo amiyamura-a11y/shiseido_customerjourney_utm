@@ -35,8 +35,8 @@ export default function GoldenPathPage() {
   }, [goldenPathResultInitialised, markGoldenPathInit, setFilters]);
 
   useEffect(() => {
-    api.labels(filters.granularity).then((r) => setLabels(r.labels)).catch(() => setLabels([]));
-  }, [filters.granularity]);
+    api.observedLabels(filters).then((r) => setLabels(r.labels)).catch(() => setLabels([]));
+  }, [filters]);
 
   // reset selection when the base conditions change
   useEffect(() => {

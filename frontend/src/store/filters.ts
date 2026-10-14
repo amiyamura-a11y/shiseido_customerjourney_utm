@@ -15,6 +15,10 @@ export const DEFAULT_FILTERS: Filters = {
   granularity: "category",
   dedupe: "keep_all",
   path_mode: "consecutive",
+  groups: [],
+  grouping_enabled: true,
+  collapse_groups: false,
+  show_repeat: false,
 };
 
 export interface GraphSettings {
@@ -55,6 +59,6 @@ export const useFilters = create<State>()(
       markGoldenPathInit: () => set({ goldenPathResultInitialised: true }),
       setHighlightPath: (p) => set({ highlightPath: p }),
     }),
-    { name: "utm-journey-filters-v1" },
+    { name: "utm-journey-filters-v2", merge: (persisted, current) => ({ ...current, ...(persisted as object), filters: { ...current.filters, ...((persisted as { filters?: Partial<Filters> })?.filters ?? {}) } }) },
   ),
 );

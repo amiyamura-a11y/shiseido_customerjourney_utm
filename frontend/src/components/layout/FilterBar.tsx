@@ -1,5 +1,7 @@
 "use client";
-import { RotateCcw } from "lucide-react";
+import { useState } from "react";
+import { RotateCcw, Layers } from "lucide-react";
+import { GroupingModal } from "./GroupingModal";
 import { useFilters } from "@/store/filters";
 import { Field, Segmented } from "@/components/ui/primitives";
 import type { Age, Dedupe, DurationPreset, Granularity, PathMode, Result, TimingPreset } from "@/lib/types";
@@ -7,8 +9,11 @@ import type { Age, Dedupe, DurationPreset, Granularity, PathMode, Result, Timing
 export function FilterBar({ show = {} }: { show?: Partial<Record<"timing" | "granularity" | "dedupe" | "pathMode", boolean>> }) {
   const { filters, setFilters, resetFilters } = useFilters();
   const s = { timing: true, granularity: true, dedupe: true, pathMode: true, ...show };
+  const [open, setOpen] = useState(false);
+  const activeGroups = filters.grouping_enabled ? filters.groups.filter((g) => g.enabled && g.name.trim()).length : 0;
   return (
     <div className="card px-4 py-3 mb-3">
+      {open && <GroupingModal filters={filters} onApply={(patch) => setFilters(patch)} onClose={() => setOpen(false)} />}
       <div className="flex flex-wrap gap-x-5 gap-y-3 items-end">
         <Field label="年代">
           <Segmented<Age> value={filters.age} onChange={(v) => setFilters({ age: v })} options={[{ value: "all", label: "全体" }, { value: "18-29", label: "18–29歳" }, { value: "30-49", label: "30–49歳" }]} />
@@ -59,6 +64,12 @@ export function FilterBar({ show = {} }: { show?: Partial<Record<"timing" | "gra
             <Segmented<Dedupe> value={filters.dedupe} onChange={(v) => setFilters({ dedupe: v })} options={[{ value: "keep_all", label: "すべて保持" }, { value: "collapse_consecutive", label: "連続重複統合" }, { value: "first_only", label: "初回のみ" }]} />
           </Field>
         )}
+        <Field label="表示名">
+          <Segmented value={filters.show_repeat ? "on" : "off"} onChange={(v) => setFilters({ show_repeat: v === "on" })} options={[{ value: "off", label: "行動名のみ" }, { value: "on", label: "回数付き（n回目）" }]} />
+        </Field>
+        <button type="button" className={`btn btn-sm ${activeGroups ? "!border-accent !text-accent" : ""}`} onClick={() => setOpen(true)} title="任意の変数を1つの名前に統合">
+          <Layers size={12} /> 変数統合{activeGroups ? `（${activeGroups}件適用中）` : ""}
+        </button>
         <button type="button" className="btn btn-sm ml-auto" onClick={resetFilters} title="共通フィルタをリセット">
           <RotateCcw size={12} /> リセット
         </button>

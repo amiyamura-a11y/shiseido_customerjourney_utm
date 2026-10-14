@@ -149,6 +149,20 @@ def api_labels(granularity: str = Query("category")):
     return {"granularity": granularity, "labels": ds.labels_for(granularity)}
 
 
+@app.post("/api/labels")
+def api_labels_observed(body: FiltersBody):
+    """Labels present under the given filters (user groups and n回目 suffixes included)."""
+    ds = _ds()
+    return {"granularity": body.filters.granularity, "labels": ds.observed_labels(body.filters), "base_labels": ds.labels_for(body.filters.granularity)}
+
+
+@app.post("/api/groups/preview")
+def api_groups_preview(body: FiltersBody):
+    """How many variables / events / persons each active group rule captures."""
+    ds = _ds()
+    return {"groups": ds.group_members_count(body.filters), "candidates": {"variables": ds.variables, "categories": ds.categories, "broads": ds.broads}}
+
+
 @app.get("/api/dictionary")
 def api_dictionary():
     ds = _ds()
