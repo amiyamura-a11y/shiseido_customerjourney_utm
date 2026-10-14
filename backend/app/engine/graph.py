@@ -48,6 +48,7 @@ class GraphRequest(BaseModel):
     min_count: int = Field(default=0, ge=0)
     min_rate: float = Field(default=0.0, ge=0.0, le=1.0)
     show_other: bool = True
+    other_mode: Literal["show", "hide", "exclude"] | None = Field(default=None, description="その他の扱い: show=表示, hide=非表示, exclude=上位N以外の行動を除外して再集計")
     selected_nodes: list[NodeRef] = Field(default_factory=list)
     selected_edges: list[EdgeRef] = Field(default_factory=list)
     include_rankings: bool = True
@@ -87,10 +88,24 @@ def build_graph(ds: Dataset, req: GraphRequest) -> dict[str, Any]:
     N = view.n
     steps = config.MAX_STEPS if req.mode == "full" else req.steps
     buyer_flags = (ds.persons.set_index("person_id")["purchase_status"] == config.BUYER_LABEL).to_dict()
+    other_mode = req.other_mode or ("show" if req.show_other else "hide")
+    req = req.model_copy(update={"show_other": other_mode == "show"})
+
+    # --- optional exclusion of minor actions (その他 に集約される行動) --------------
+    sequences = view.sequences
+    exclude_note: list[str] = []
+    if other_mode == "exclude":
+        exp: dict[str, set[int]] = defaultdict(set)
+        for pid, seq in view.sequences.items():
+            for lab, _dn, _st in seq:
+                exp[lab].add(pid)
+        top = {lab for lab, _ in sorted(exp.items(), key=lambda x: (-len(x[1]), x[0]))[: req.top_n]}
+        sequences = {pid: [it for it in seq if it[0] in top] for pid, seq in view.sequences.items()}
+        exclude_note.append(f"「その他」除外モード: 経験人数上位{req.top_n}の行動（" + "、".join(sorted(top)) + "）以外をパスから除外し、残った行動を隣接として再集計。分母 n は変更しない。")
 
     # --- per-person placement ------------------------------------------
     placements: dict[int, tuple[list, int, bool]] = {}
-    for pid, seq in view.sequences.items():
+    for pid, seq in sequences.items():
         w = _window(seq, req)
         if w is not None:
             placements[pid] = w
@@ -287,7 +302,7 @@ def build_graph(ds: Dataset, req: GraphRequest) -> dict[str, Any]:
         "edges": edges,
         "selection": selection_info,
         "filters": f.describe(),
-        "notes": list(view.note) + _mode_notes(req, N, len(base_pids)),
+        "notes": list(view.note) + exclude_note + _mode_notes(req, N, len(base_pids)),
         "denominators": {
             "experience_rate": "フィルタ対象者数 n",
             "share_of_step": "当該ステップ到達者数",
@@ -300,7 +315,8 @@ def build_graph(ds: Dataset, req: GraphRequest) -> dict[str, Any]:
         },
     }
     if req.include_rankings:
-        result["rankings"] = rankings(ds, view, sel_pids if selection_info else None)
+        rank_view = view if other_mode != "exclude" else View(view.filters, view.person_ids, sequences, view.n, view.label_of, view.note)
+        result["rankings"] = rankings(ds, rank_view, sel_pids if selection_info else None)
     return result
 
 

@@ -35,6 +35,7 @@ export const api = {
   detail: (body: { filters: Filters; path: string[]; examples?: number }) => request<DetailResponse>("/api/paths/detail", { method: "POST", body: JSON.stringify(body) }),
   timeline: (filters: Filters, top_n = 15) => request<TimelineResponse>("/api/timeline", { method: "POST", body: JSON.stringify({ filters, top_n }) }),
   labels: (granularity: string) => request<{ labels: string[] }>(`/api/labels?granularity=${granularity}`),
+  insights: (body: InsightRequestBody) => request<InsightResponse>("/api/insights", { method: "POST", body: JSON.stringify(body) }),
   observedLabels: (filters: Filters) => request<{ labels: string[]; base_labels: string[] }>("/api/labels", { method: "POST", body: JSON.stringify({ filters }) }),
   groupsPreview: (filters: Filters) => request<{ groups: Record<string, { variables: number; events: number; persons: number }>; candidates: { variables: string[]; categories: string[]; broads: string[] } }>("/api/groups/preview", { method: "POST", body: JSON.stringify({ filters }) }),
   dictionary: () => request<DictionaryResponse>("/api/dictionary"),
@@ -61,6 +62,7 @@ export interface GraphRequestBody {
   min_count: number;
   min_rate: number;
   show_other: boolean;
+  other_mode?: "show" | "hide" | "exclude";
   selected_nodes: { step: number; label: string }[];
   selected_edges: { step: number; source: string; target: string }[];
   include_rankings?: boolean;
@@ -77,6 +79,7 @@ export interface CompareRequestBody {
   top_n: number;
   min_count: number;
   show_other: boolean;
+  other_mode?: "show" | "hide" | "exclude";
 }
 
 export interface CompareResponse {
@@ -234,4 +237,25 @@ export interface ValidationResponse {
   rows: { section: string; segment: string; item: string; excel: number | null; recalc: number | null; diff: number | null; denominator: number | null; definition: string; match: boolean; reason: string }[];
   summary: { total: number; match: number; mismatch: number };
   implied_prior: { formula?: string; implied_prior_by_age?: Record<string, { prior: number; min: number; max: number; rows: number }>; note?: string };
+}
+
+export interface InsightRequestBody {
+  page: string;
+  filters: Filters;
+  steps?: number;
+  mode?: string;
+  anchor?: string | null;
+  top_n?: number;
+  other_mode?: string;
+  entry_anchor?: string | null;
+  compare_a?: Filters | null;
+  compare_b?: Filters | null;
+  label_a?: string;
+  label_b?: string;
+}
+
+export interface InsightResponse {
+  sections: { title: string; paragraphs: string[] }[];
+  caveat: string;
+  basis: Record<string, unknown>;
 }

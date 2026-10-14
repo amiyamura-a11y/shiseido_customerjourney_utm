@@ -219,11 +219,14 @@ class Dataset:
                 counts[lab] = counts.get(lab, 0) + 1
                 numbered.append((f"{lab} {counts[lab]}回目", dn, st))
             labelled = numbered
+        excl = set(f.exclude_labels)
         out: list[SeqItem] = []
         for lab, dn, st in labelled:
             if lo is not None and dn < lo:
                 continue
             if hi is not None and dn > hi:
+                continue
+            if excl and (lab in excl or _base_label(lab) in excl):
                 continue
             out.append((lab, dn, st))
         return out
@@ -244,6 +247,8 @@ class Dataset:
             notes.append("連続する同一グループを1つに集約")
         if f.show_repeat:
             notes.append("表示名の「n回目」は本人のジャーニー全体における当該行動の出現回数（行動発生時期フィルタ適用前に採番）")
+        if f.exclude_labels:
+            notes.append("除外行動: " + "、".join(f.exclude_labels) + "（除外後に残った行動を隣接として扱う。元ログの真の連続パスとは異なる）")
         t_lo, t_hi = f.timing_range()
         if not (t_lo is None and t_hi is None):
             notes.append("行動発生時期フィルタ適用後の隣接（期間内抽出後の隣接）。元ログでの真の連続パスとは異なります。")
@@ -267,6 +272,13 @@ class Dataset:
             "variables": len(self.variables),
             "categories": len(self.categories),
         }
+
+
+_REPEAT_RE = re.compile(r" \d+回目$")
+
+
+def _base_label(lab: str) -> str:
+    return _REPEAT_RE.sub("", lab)
 
 
 def rate(num: int, den: int) -> float | None:

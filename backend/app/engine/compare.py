@@ -24,6 +24,7 @@ class CompareRequest(BaseModel):
     top_n: int = Field(default=8, ge=3, le=15)
     min_count: int = 0
     show_other: bool = True
+    other_mode: str | None = None
 
 
 def _experience(ds: Dataset, f: Filters) -> tuple[dict[str, set[int]], int, dict[str, list[int]]]:
@@ -41,8 +42,8 @@ def _experience(ds: Dataset, f: Filters) -> tuple[dict[str, set[int]], int, dict
 def compare(ds: Dataset, req: CompareRequest) -> dict[str, Any]:
     # align granularity & modes between A and B
     fb = req.b.model_copy(update={"granularity": req.a.granularity, "dedupe": req.a.dedupe, "path_mode": req.a.path_mode})
-    ga = build_graph(ds, GraphRequest(filters=req.a, steps=req.steps, mode=req.mode, anchor=req.anchor, top_n=req.top_n, min_count=req.min_count, show_other=req.show_other, include_rankings=False))
-    gb = build_graph(ds, GraphRequest(filters=fb, steps=req.steps, mode=req.mode, anchor=req.anchor, top_n=req.top_n, min_count=req.min_count, show_other=req.show_other, include_rankings=False))
+    ga = build_graph(ds, GraphRequest(filters=req.a, steps=req.steps, mode=req.mode, anchor=req.anchor, top_n=req.top_n, min_count=req.min_count, show_other=req.show_other, other_mode=req.other_mode, include_rankings=False))
+    gb = build_graph(ds, GraphRequest(filters=fb, steps=req.steps, mode=req.mode, anchor=req.anchor, top_n=req.top_n, min_count=req.min_count, show_other=req.show_other, other_mode=req.other_mode, include_rankings=False))
     # shared node order per column: union sorted by combined count, so both sides align
     order: dict[int, list[str]] = {}
     combined: dict[tuple[int, str], int] = defaultdict(int)

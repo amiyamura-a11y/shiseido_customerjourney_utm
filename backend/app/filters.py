@@ -64,6 +64,7 @@ class Filters(BaseModel):
     grouping_enabled: bool = True
     collapse_groups: bool = Field(default=False, description="連続する同一グループを1つに集約")
     show_repeat: bool = Field(default=False, description="表示名に n回目 を付ける")
+    exclude_labels: list[str] = Field(default_factory=list, description="パスから除外する行動（統合後ラベル。n回目付き／なしのどちらでも指定可）")
 
     def active_groups(self) -> list["GroupRule"]:
         return [g for g in self.groups if g.enabled and g.name.strip()] if self.grouping_enabled else []
@@ -83,7 +84,7 @@ class Filters(BaseModel):
 
     def sequence_key(self) -> tuple:
         groups = tuple((g.name, tuple(sorted(g.members)), g.match_type, g.pattern, g.dn_min, g.dn_max) for g in self.active_groups())
-        return (self.timing_range(), self.granularity, self.dedupe, groups, self.collapse_groups, self.show_repeat)
+        return (self.timing_range(), self.granularity, self.dedupe, groups, self.collapse_groups, self.show_repeat, tuple(sorted(self.exclude_labels)))
 
     def describe(self) -> dict:
         d_lo, d_hi = self.duration_range()
@@ -100,4 +101,5 @@ class Filters(BaseModel):
             "groups": [g.name for g in self.active_groups()],
             "collapse_groups": self.collapse_groups,
             "show_repeat": self.show_repeat,
+            "exclude_labels": list(self.exclude_labels),
         }

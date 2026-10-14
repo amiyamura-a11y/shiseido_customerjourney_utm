@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
 import { RotateCcw, Layers } from "lucide-react";
 import { GroupingModal } from "./GroupingModal";
 import { useFilters } from "@/store/filters";
@@ -10,6 +11,12 @@ export function FilterBar({ show = {} }: { show?: Partial<Record<"timing" | "gra
   const { filters, setFilters, resetFilters } = useFilters();
   const s = { timing: true, granularity: true, dedupe: true, pathMode: true, ...show };
   const [open, setOpen] = useState(false);
+  const [labels, setLabels] = useState<string[]>([]);
+  useEffect(() => {
+    const t = setTimeout(() => api.observedLabels({ ...filters, exclude_labels: [] }).then((r) => setLabels(r.labels)).catch(() => setLabels([])), 150);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.age, filters.result, filters.duration_preset, filters.duration_min, filters.duration_max, filters.timing_preset, filters.timing_min, filters.timing_max, filters.granularity, filters.dedupe, filters.groups, filters.grouping_enabled, filters.collapse_groups, filters.show_repeat]);
   const activeGroups = filters.grouping_enabled ? filters.groups.filter((g) => g.enabled && g.name.trim()).length : 0;
   return (
     <div className="card px-4 py-3 mb-3">
@@ -66,6 +73,17 @@ export function FilterBar({ show = {} }: { show?: Partial<Record<"timing" | "gra
         )}
         <Field label="表示名">
           <Segmented value={filters.show_repeat ? "on" : "off"} onChange={(v) => setFilters({ show_repeat: v === "on" })} options={[{ value: "off", label: "行動名のみ" }, { value: "on", label: "回数付き（n回目）" }]} />
+        </Field>
+        <Field label="除外する行動（パスから取り除き、残りを隣接扱い）">
+          <div className="flex items-center gap-1 flex-wrap max-w-[520px]">
+            <select className="ctl" value="" onChange={(e) => { const v = e.target.value; if (v && !filters.exclude_labels.includes(v)) setFilters({ exclude_labels: [...filters.exclude_labels, v] }); }}>
+              <option value="">追加…</option>
+              {labels.filter((l) => !filters.exclude_labels.includes(l)).map((l) => (<option key={l} value={l}>{l}</option>))}
+            </select>
+            {filters.exclude_labels.map((l) => (
+              <span key={l} className="chip chip-warn cursor-pointer" title="クリックで解除" onClick={() => setFilters({ exclude_labels: filters.exclude_labels.filter((x) => x !== l) })}>{l} ×</span>
+            ))}
+          </div>
         </Field>
         <button type="button" className={`btn btn-sm ${activeGroups ? "!border-accent !text-accent" : ""}`} onClick={() => setOpen(true)} title="任意の変数を1つの名前に統合">
           <Layers size={12} /> 変数統合{activeGroups ? `（${activeGroups}件適用中）` : ""}

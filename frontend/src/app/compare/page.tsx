@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Image as ImageIcon, FileCode2 } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { FilterBar } from "@/components/layout/FilterBar";
+import { InsightBox } from "@/components/ui/InsightBox";
 import { Button, Callout, Card, Field, Kpi, Notes, Segmented, SmallCell, StateBox } from "@/components/ui/primitives";
 import { DataTable } from "@/components/ui/DataTable";
 import { GoldenPathFlow, type GoldenPathFlowHandle } from "@/components/flow/GoldenPathFlow";
@@ -48,18 +49,20 @@ export default function ComparePage() {
     let c = false;
     const { a, b } = build();
     setState("loading");
-    api.compare({ a, b, label_a: label(a), label_b: label(b), steps: gs.steps, mode: gs.mode === "anchor" && !gs.anchor ? "head" : gs.mode, anchor: gs.anchor, top_n: gs.top_n, min_count: gs.min_count, show_other: gs.show_other })
+    api.compare({ a, b, label_a: label(a), label_b: label(b), steps: gs.steps, mode: gs.mode === "anchor" && !gs.anchor ? "head" : gs.mode, anchor: gs.anchor, top_n: gs.top_n, min_count: gs.min_count, show_other: gs.show_other, other_mode: gs.other_mode })
       .then((d) => { if (c) return; setData(d); setState(d.summary.n_a === 0 && d.summary.n_b === 0 ? "empty" : "ready"); })
       .catch((e) => { if (c) return; setError(e instanceof ApiError ? e.message : String(e)); setState("error"); });
     return () => { c = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, preset, custom, gs.steps, gs.mode, gs.anchor, gs.top_n, gs.min_count, gs.show_other]);
+  }, [filters, preset, custom, gs.steps, gs.mode, gs.anchor, gs.top_n, gs.min_count, gs.show_other, gs.other_mode]);
 
   const scale = data ? { maxRate: data.scale.max_rate, maxCount: data.scale.max_count } : null;
+  const ab = build();
   return (
     <>
       <Header title="パス比較" sub="左右同条件のフローを比較。ノード位置・色・サイズスケール・ステップ数を揃えて表示。" />
       <FilterBar />
+      <InsightBox request={{ page: "compare", filters, compare_a: ab.a, compare_b: ab.b, label_a: label(ab.a), label_b: label(ab.b) }} />
       <div className="card px-4 py-3 mb-3 flex flex-wrap gap-5 items-end">
         <Field label="プリセット">
           <Segmented<Preset> value={preset} onChange={setPreset} options={[{ value: "buyer_vs_nonbuyer", label: "購入者 vs 非購入者" }, { value: "age", label: "18–29歳 vs 30–49歳" }, { value: "short_vs_long", label: "短期(0–7日) vs 長期(22–30日)" }, { value: "custom", label: "任意A/B" }]} />

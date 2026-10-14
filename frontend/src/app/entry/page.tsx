@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Header } from "@/components/layout/Header";
 import { FilterBar } from "@/components/layout/FilterBar";
+import { InsightBox } from "@/components/ui/InsightBox";
 import { Callout, Card, Field, Kpi, Notes, Segmented, Select, StateBox } from "@/components/ui/primitives";
 import { DataTable } from "@/components/ui/DataTable";
 import { api, ApiError, type EntryResponse, type ValidationResponse } from "@/lib/api";
@@ -61,6 +62,7 @@ export default function EntryPage() {
     <>
       <Header title="起点行動分析" sub="起点 → 2番目 → 3番目…。各率の分母を明示（起点単体経験率／起点経験者／直前パス経験者／全対象者）。" />
       <FilterBar />
+      <InsightBox request={{ page: "entry", filters, entry_anchor: anchor || null }} />
       <div className="card px-4 py-3 mb-3 flex flex-wrap gap-5 items-end">
         <Field label="起点（検索可・実マスタに存在する項目のみ）">
           <div className="flex gap-1">

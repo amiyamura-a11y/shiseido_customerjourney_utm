@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Header } from "@/components/layout/Header";
 import { FilterBar } from "@/components/layout/FilterBar";
+import { InsightBox } from "@/components/ui/InsightBox";
 import { Card, Chip, Kpi, Notes, SmallCell, StateBox } from "@/components/ui/primitives";
 import { DataTable } from "@/components/ui/DataTable";
 import { Histogram, HBar } from "@/components/charts/Charts";
@@ -25,6 +26,7 @@ export default function OverviewPage() {
     <>
       <Header title="データ概観" sub="母数・分布・行動カテゴリ一覧・データ品質。すべて個票CSVから再計算。" />
       <FilterBar show={{ pathMode: false }} />
+      <InsightBox request={{ page: "overview", filters }} />
       <StateBox state={state} error={error}>
         {data && (
           <>

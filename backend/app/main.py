@@ -19,6 +19,7 @@ from . import config
 from .engine.compare import CompareRequest, compare
 from .engine.entry import EntryRequest, anchor_options, entry_analysis
 from .engine.graph import GraphRequest, build_graph
+from .engine.insights import InsightRequest, insights
 from .engine.overview import overview
 from .engine.search import PathDetailRequest, SearchRequest, path_detail, search
 from .engine.timeline import TimelineRequest, timeline
@@ -141,6 +142,11 @@ def api_detail(req: PathDetailRequest):
 @app.post("/api/timeline")
 def api_timeline(req: TimelineRequest):
     return _cached(("timeline", req.model_dump()), lambda ds: timeline(ds, req))
+
+
+@app.post("/api/insights")
+def api_insights(req: InsightRequest):
+    return _cached(("insights", req.model_dump()), lambda ds: insights(ds, req))
 
 
 @app.get("/api/labels")

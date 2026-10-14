@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Download, Image as ImageIcon, FileCode2, X, Maximize2 } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { FilterBar } from "@/components/layout/FilterBar";
+import { InsightBox } from "@/components/ui/InsightBox";
 import { Button, Callout, Card, Chip, Field, Kpi, Notes, Segmented, Select, SmallCell, StateBox } from "@/components/ui/primitives";
 import { DataTable } from "@/components/ui/DataTable";
 import { GoldenPathFlow, type GoldenPathFlowHandle } from "@/components/flow/GoldenPathFlow";
@@ -42,13 +43,13 @@ export default function GoldenPathPage() {
   useEffect(() => {
     setSelNodes([]);
     setSelEdges([]);
-  }, [filters, gs.steps, gs.mode, gs.anchor, gs.top_n, gs.min_count, gs.show_other]);
+  }, [filters, gs.steps, gs.mode, gs.anchor, gs.top_n, gs.min_count, gs.show_other, gs.other_mode]);
 
   useEffect(() => {
     let cancelled = false;
     setState("loading");
     api
-      .graph({ filters, steps: gs.steps, mode: gs.mode, anchor: gs.anchor, anchor_occurrence: gs.anchor_occurrence, top_n: gs.top_n, min_count: gs.min_count, min_rate: gs.min_rate, show_other: gs.show_other, selected_nodes: selNodes, selected_edges: selEdges, include_rankings: true })
+      .graph({ filters, steps: gs.steps, mode: gs.mode, anchor: gs.anchor, anchor_occurrence: gs.anchor_occurrence, top_n: gs.top_n, min_count: gs.min_count, min_rate: gs.min_rate, show_other: gs.show_other, other_mode: gs.other_mode, selected_nodes: selNodes, selected_edges: selEdges, include_rankings: true })
       .then((g) => {
         if (cancelled) return;
         setData(g);
@@ -115,6 +116,7 @@ export default function GoldenPathPage() {
         }
       />
       <FilterBar />
+      <InsightBox request={{ page: "golden-path", filters, steps: gs.steps, mode: gs.mode, anchor: gs.anchor, top_n: gs.top_n, other_mode: gs.other_mode }} />
       <div className="card px-4 py-3 mb-3">
         <div className="flex flex-wrap gap-x-5 gap-y-3 items-end">
           <Field label="表示モード">
@@ -150,8 +152,8 @@ export default function GoldenPathPage() {
               <span className="text-[10px] text-n500">%</span>
             </div>
           </Field>
-          <Field label="「その他」">
-            <Segmented value={gs.show_other ? "on" : "off"} onChange={(v) => setGraph({ show_other: v === "on" })} options={[{ value: "on", label: "表示" }, { value: "off", label: "非表示" }]} />
+          <Field label="「その他」（上位N以外の行動）">
+            <Segmented value={gs.other_mode ?? (gs.show_other ? "show" : "hide")} onChange={(v) => setGraph({ other_mode: v, show_other: v === "show" })} options={[{ value: "show", label: "表示" }, { value: "hide", label: "非表示" }, { value: "exclude", label: "除外して再集計", title: "経験人数上位N以外の行動をパスから除外し、残った行動を隣接として再集計" }]} />
           </Field>
           <div className="ml-auto flex gap-1">
             {(selNodes.length > 0 || selEdges.length > 0 || highlightPath) && (

@@ -19,6 +19,7 @@ export const DEFAULT_FILTERS: Filters = {
   grouping_enabled: true,
   collapse_groups: false,
   show_repeat: false,
+  exclude_labels: [],
 };
 
 export interface GraphSettings {
@@ -30,9 +31,10 @@ export interface GraphSettings {
   min_count: number;
   min_rate: number;
   show_other: boolean;
+  other_mode: "show" | "hide" | "exclude";
 }
 
-export const DEFAULT_GRAPH: GraphSettings = { steps: 5, mode: "head", anchor: null, anchor_occurrence: "first", top_n: 8, min_count: 0, min_rate: 0, show_other: true };
+export const DEFAULT_GRAPH: GraphSettings = { steps: 5, mode: "head", anchor: null, anchor_occurrence: "first", top_n: 8, min_count: 0, min_rate: 0, show_other: true, other_mode: "show" };
 
 interface State {
   filters: Filters;

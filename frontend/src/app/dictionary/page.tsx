@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import { RefreshCw, Upload, Trash2 } from "lucide-react";
 import { Header } from "@/components/layout/Header";
+import { InsightBox } from "@/components/ui/InsightBox";
+import { DEFAULT_FILTERS } from "@/store/filters";
 import { Button, Callout, Card, Chip, Kpi, StateBox } from "@/components/ui/primitives";
 import { DataTable } from "@/components/ui/DataTable";
 import { api, ApiError, type DictionaryResponse, type ValidationResponse } from "@/lib/api";
@@ -38,6 +40,7 @@ export default function DictionaryPage() {
   return (
     <>
       <Header title="データ・変数定義" sub="入力ファイル・読み込み状況・個別変数→分析カテゴリ→大分類の対応表・未分類／不一致・品質検査・既存Excel照合" actions={<div className="flex gap-1"><Button size="sm" onClick={reload}><RefreshCw size={12} /> 再読み込み</Button><Button size="sm" onClick={clearCache}><Trash2 size={12} /> キャッシュ無効化</Button><Button size="sm" variant="primary" onClick={() => fileRef.current?.click()}><Upload size={12} /> CSV/Excelアップロード</Button><input ref={fileRef} type="file" accept=".csv,.xlsx" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }} /></div>} />
+      <InsightBox request={{ page: "dictionary", filters: DEFAULT_FILTERS }} />
       {msg && <div className="mb-3"><Callout>{msg}</Callout></div>}
       <StateBox state={state} error={error}>
         {data && (

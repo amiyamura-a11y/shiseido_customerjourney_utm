@@ -34,6 +34,7 @@ export interface Filters {
   grouping_enabled: boolean;
   collapse_groups: boolean;
   show_repeat: boolean;
+  exclude_labels: string[];
 }
 
 export interface GraphNode {

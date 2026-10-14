@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Header } from "@/components/layout/Header";
 import { FilterBar } from "@/components/layout/FilterBar";
+import { InsightBox } from "@/components/ui/InsightBox";
 import { Card, Kpi, Notes, StateBox } from "@/components/ui/primitives";
 import { DataTable } from "@/components/ui/DataTable";
 import { Heatmap } from "@/components/charts/Charts";
@@ -27,6 +28,7 @@ export default function TimelinePage() {
     <>
       <Header title="時系列分析" sub="D−30〜D−0 のカテゴリ別ヒートマップ・時期別ランキング・観測期間別比較" actions={data ? <button className="btn btn-sm" onClick={() => downloadCsv("timeline_heatmap.csv", ["行動", ...daysAxis.map((d) => `D-${d}`)], data.heatmap.map((r) => [r.label, ...r.cells.map((c) => c.count)]), { filters: JSON.stringify(filters), n: data.n, 値: "ユニーク人数" })}>CSV</button> : null} />
       <FilterBar show={{ timing: false, dedupe: false, pathMode: false }} />
+      <InsightBox request={{ page: "timeline", filters }} />
       <StateBox state={state} error={error}>
         {data && (
           <>

@@ -158,3 +158,16 @@ def test_show_repeat_and_groups(synth_ds):
     # disabled grouping leaves labels untouched
     f5 = f3.model_copy(update={"grouping_enabled": False})
     assert "EC行動" not in synth_ds.observed_labels(f5)
+
+
+def test_exclude_labels_and_other_exclude_mode(synth_ds):
+    from app.filters import Filters
+    f = Filters(granularity="category", exclude_labels=["大手EC_Amazon"])
+    assert [x[0] for x in synth_ds.view(f).sequences[4]] == ["悩み・成分・カテゴリ検索", "資生堂_公式EC", "UTM指名検索", "資生堂_公式EC"]
+    # base-label exclusion also removes n回目 variants
+    f2 = Filters(granularity="category", show_repeat=True, exclude_labels=["大手EC_Amazon"])
+    assert all("大手EC_Amazon" not in x[0] for x in synth_ds.view(f2).sequences[4])
+    g = build_graph(synth_ds, GraphRequest(filters=Filters(granularity="category"), steps=3, top_n=3, other_mode="exclude"))
+    assert not any(n["label"] == "その他" for n in g["nodes"])
+    assert any("除外モード" in n for n in g["notes"])
+    assert g["n"] == 6

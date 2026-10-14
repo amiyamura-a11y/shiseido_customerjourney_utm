@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Route } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { FilterBar } from "@/components/layout/FilterBar";
+import { InsightBox } from "@/components/ui/InsightBox";
 import { Button, Callout, Card, Field, Kpi, Notes, Segmented, Select, SmallCell, StateBox } from "@/components/ui/primitives";
 import { DataTable } from "@/components/ui/DataTable";
 import { api, ApiError, type DetailResponse, type SearchResponse, type SearchRow } from "@/lib/api";
@@ -58,6 +59,7 @@ export default function SearchPage() {
     <>
       <Header title="パス詳細探索" sub="起点・終点・経由・ステップ数・人数閾値で検索。行クリックで匿名の実行動例と内訳を表示。" />
       <FilterBar />
+      <InsightBox request={{ page: "search", filters }} />
       <div className="card px-4 py-3 mb-3 flex flex-wrap gap-4 items-end">
         <Field label="起点"><Select className="min-w-[200px]" value={start} onChange={setStart} options={labels.map((l) => ({ value: l, label: l }))} placeholder="（指定なし）" /></Field>
         <Field label="終点"><Select className="min-w-[200px]" value={end} onChange={setEnd} options={labels.map((l) => ({ value: l, label: l }))} placeholder="（指定なし）" /></Field>
