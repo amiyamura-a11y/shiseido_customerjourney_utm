@@ -10,7 +10,7 @@
 
 ```
 backend/            FastAPI + 集計エンジン（app/）、pytest（tests/）
-frontend/           Next.js アプリ（src/app 配下に 7 ページ）
+frontend/           Next.js アプリ（src/app 配下に 6 ページ）
 data/raw/           入力ファイルを置く場所（git管理外）
 data/processed/     正規化済み Parquet キャッシュ（自動生成・git管理外）
 data/uploads/       画面からアップロードしたファイル（git管理外）
@@ -64,7 +64,6 @@ pytest は合成データによる単体テスト（行動順序・欠損・繰�
 | 04 | 時系列分析 | D−30〜D−0 ヒートマップ、日別推移、時期別ランキング、観測期間別比較 |
 | 05 | 起点行動分析 | 起点→2番目→3番目…（2〜10）。初回／最終／全出現、直後／指定カテゴリ／指定日数内。追加集計Excelとの照合 |
 | 06 | パス詳細探索 | 起点・終点・経由・ステップ数・閾値で検索。匿名の実行動例、セグメント比較、Golden Pathへのハイライト |
-| 07 | データ・変数定義 | 入力ファイル、列マッピング、変数対応表、加工定義との不一致、品質検査、Excel照合レポート、アップロード／再読み込み／キャッシュ無効化 |
 
 ## 6. 集計定義（要点）
 
@@ -116,7 +115,7 @@ docker run -p 8000:8000 -e APP_USER=demo -e APP_PASSWORD=secret -v "$PWD/data:/a
 ```
 
 ### 8.6 静的HTML版（バックエンド不要）
-`backend/scripts/export_static_html.py` は、正規化済みの個票を埋め込んだ **単一HTMLファイル**（既定 `site/index.html`、約2.5MB）を書き出します。すべての集計はブラウザ内で再計算され、バックエンド無しで 7 ページが動作します（アップロード・再読み込みのみ非対応。Excel照合は生成時の結果を埋め込み）。
+`backend/scripts/export_static_html.py` は、正規化済みの個票を埋め込んだ **単一HTMLファイル**（既定 `site/index.html`、約2.5MB）を書き出します。すべての集計はブラウザ内で再計算され、バックエンド無しで 6 ページが動作します（アップロード・再読み込みのみ非対応。Excel照合は生成時の結果を埋め込み）。
 
 ```bash
 cd backend && source .venv/bin/activate && python scripts/export_static_html.py --out ../site/index.html

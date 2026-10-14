@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Route, Columns2, Clock, Flag, Search, BookOpen } from "lucide-react";
+import { LayoutDashboard, Route, Columns2, Clock, Flag, Search } from "lucide-react";
 
 export const NAV = [
   { href: "/overview", idx: "01", label: "データ概観", icon: LayoutDashboard },
@@ -10,7 +10,6 @@ export const NAV = [
   { href: "/timeline", idx: "04", label: "時系列分析", icon: Clock },
   { href: "/entry", idx: "05", label: "起点行動分析", icon: Flag },
   { href: "/search", idx: "06", label: "パス詳細探索", icon: Search },
-  { href: "/dictionary", idx: "07", label: "データ・変数定義", icon: BookOpen },
 ];
 
 export function Sidebar() {
