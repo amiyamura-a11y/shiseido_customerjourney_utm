@@ -115,6 +115,15 @@ docker build -t utm-journey .
 docker run -p 8000:8000 -e APP_USER=demo -e APP_PASSWORD=secret -v "$PWD/data:/app/data" utm-journey
 ```
 
+### 8.6 静的HTML版（バックエンド不要）
+`backend/scripts/export_static_html.py` は、正規化済みの個票を埋め込んだ **単一HTMLファイル**（既定 `site/index.html`、約2.5MB）を書き出します。すべての集計はブラウザ内で再計算され、バックエンド無しで 7 ページが動作します（アップロード・再読み込みのみ非対応。Excel照合は生成時の結果を埋め込み）。
+
+```bash
+cd backend && source .venv/bin/activate && python scripts/export_static_html.py --out ../site/index.html
+```
+
+**注意**: このHTMLには匿名化済みとはいえ個票の行動系列がそのまま埋め込まれます。GitHub Pages は常に公開ページで認証を付けられないため、公開する場合はその前提を確認してください（`site/` は既定で git 管理外）。閲覧制限が必要な場合は 8.3〜8.5 のコンテナ版（Basic認証あり）を使ってください。
+
 ## 9. 既知の制約・未解決事項
 
 `docs/data_inspection_report.md` を参照してください。
