@@ -1,0 +1,23 @@
+# data (raw inputs are client data; place them under data/raw locally)
+data/raw/*
+!data/raw/.gitkeep
+data/processed/
+data/uploads/
+
+# python
+backend/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# node
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/next-env.d.ts
+*.tsbuildinfo
+npm-debug.log*
+
+# misc
+.DS_Store
+*.log
