@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, Download } from "lucide-react";
 import { downloadCsv } from "@/lib/export";
 import type { ReactNode } from "react";
@@ -14,7 +14,7 @@ export interface Column<T> {
   width?: string;
 }
 
-export function DataTable<T>({ rows, columns, rowKey, onRowClick, selectedKey, exportName, exportMeta, maxHeight = 420, pageSize }: { rows: T[]; columns: Column<T>[]; rowKey: (r: T, i: number) => string; onRowClick?: (r: T) => void; selectedKey?: string | null; exportName?: string; exportMeta?: Record<string, unknown>; maxHeight?: number; pageSize?: number }) {
+export function DataTable<T>({ rows, columns, rowKey, onRowClick, selectedKey, exportName, exportMeta, maxHeight = 420, pageSize, expandRender }: { rows: T[]; columns: Column<T>[]; rowKey: (r: T, i: number) => string; onRowClick?: (r: T) => void; selectedKey?: string | null; exportName?: string; exportMeta?: Record<string, unknown>; maxHeight?: number; pageSize?: number; expandRender?: (r: T) => ReactNode }) {
   const [sort, setSort] = useState<{ key: string; dir: 1 | -1 } | null>(null);
   const [page, setPage] = useState(0);
   const sorted = useMemo(() => {
@@ -73,13 +73,20 @@ export function DataTable<T>({ rows, columns, rowKey, onRowClick, selectedKey, e
             {paged.map((r, i) => {
               const k = rowKey(r, i);
               return (
-                <tr key={k} className={`${onRowClick ? "clickable" : ""} ${selectedKey === k ? "selected" : ""}`} onClick={() => onRowClick?.(r)}>
-                  {columns.map((c) => (
-                    <td key={c.key} className={c.num ? "num" : ""}>
-                      {c.render ? c.render(r) : c.value ? (c.value(r) as ReactNode) : null}
-                    </td>
-                  ))}
-                </tr>
+                <Fragment key={k}>
+                  <tr className={`${onRowClick ? "clickable" : ""} ${selectedKey === k ? "selected" : ""}`} onClick={() => onRowClick?.(r)}>
+                    {columns.map((c) => (
+                      <td key={c.key} className={c.num ? "num" : ""}>
+                        {c.render ? c.render(r) : c.value ? (c.value(r) as ReactNode) : null}
+                      </td>
+                    ))}
+                  </tr>
+                  {expandRender && selectedKey === k && (
+                    <tr className="expand">
+                      <td colSpan={columns.length} className="!bg-n25 !p-2">{expandRender(r)}</td>
+                    </tr>
+                  )}
+                </Fragment>
               );
             })}
           </tbody>

@@ -27,7 +27,8 @@ export default function GoldenPathPage() {
   const [customSteps, setCustomSteps] = useState<string>("");
   const flowRef = useRef<GoldenPathFlowHandle>(null);
   const [tall, setTall] = useState(false);
-  const [rankView, setRankView] = useState<"diagram" | "table">("diagram");
+  const [rankView, setRankView] = useState<"table" | "diagram">("table");
+  const [openPath, setOpenPath] = useState<string | null>(null);
 
   // Golden Path initial value for 結果 is 購入者 (once)
   useEffect(() => {
@@ -206,7 +207,7 @@ export default function GoldenPathPage() {
 
       {data?.rankings && (
         <div className="grid grid-cols-2 gap-3 mt-3">
-          <Card title="主要パス（連続／順序保持は共通フィルタに従う）" sub={`分母 n=${num(data.rankings.denominator)}${data.selection ? "（選択後）" : ""}。ユニーク人数ベース。行クリックでフロー上にハイライト。`} right={<Segmented value={rankView} onChange={setRankView} options={[{ value: "diagram", label: "パス図" }, { value: "table", label: "表" }]} size="sm" />}>
+          <Card title="主要パス（連続／順序保持は共通フィルタに従う）" sub={`分母 n=${num(data.rankings.denominator)}${data.selection ? "（選択後）" : ""}。ユニーク人数ベース。行クリックでパス図を展開し、フロー上にハイライト。`} right={<Segmented value={rankView} onChange={setRankView} options={[{ value: "table", label: "表（クリックでパス図）" }, { value: "diagram", label: "パス図（すべて）" }]} size="sm" />}>
             {(["2", "3", "5"] as const).map((k) => (
               <div key={k} className="mb-3">
                 <div className="section-label mb-1">{k}ステップ</div>
@@ -217,8 +218,10 @@ export default function GoldenPathPage() {
                 <DataTable
                   rows={data.rankings!.top_paths[k].rows}
                   rowKey={(r) => r.path.join(">")}
-                  maxHeight={220}
-                  onRowClick={(r) => { setHighlightPath(r.path); }}
+                  maxHeight={360}
+                  selectedKey={openPath}
+                  expandRender={(r) => <PathDiagram rows={[r]} />}
+                  onRowClick={(r) => { const key = r.path.join(">"); setOpenPath((o) => (o === key ? null : key)); setHighlightPath(r.path); }}
                   columns={[
                     { key: "path", header: "パス", render: (r) => <span>{r.path.join(" → ")}</span>, value: (r) => r.path.join(" → ") },
                     { key: "count", header: "人数", num: true, value: (r) => r.count },
@@ -242,8 +245,10 @@ export default function GoldenPathPage() {
                   <DataTable
                     rows={b.rows}
                     rowKey={(r) => r.path.join(">")}
-                    maxHeight={220}
-                    onRowClick={(r) => setHighlightPath(r.path)}
+                    maxHeight={360}
+                    selectedKey={openPath}
+                    expandRender={(r) => <PathDiagram statLabel="購入者 人数（率）／非購入者率・差pt" rows={[{ path: r.path, count: r.buyer_count, rate: r.buyer_rate, secondary: `vs ${pct(r.nonbuyer_rate)} ${pt(r.diff_pt)}`, small_cell: r.small_cell }]} />}
+                    onRowClick={(r) => { const key = r.path.join(">"); setOpenPath((o) => (o === key ? null : key)); setHighlightPath(r.path); }}
                     columns={[
                       { key: "path", header: "パス", value: (r) => r.path.join(" → ") },
                       { key: "b", header: "購入者", num: true, render: (r) => `${num(r.buyer_count)}（${pct(r.buyer_rate)}）`, value: (r) => r.buyer_rate },
