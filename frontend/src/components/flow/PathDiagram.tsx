@@ -33,7 +33,7 @@ export function PathDiagram({ rows, onRowClick, statLabel = "人数（経験率�
   const H = rows.length * ROW + 8;
   return (
     <div className="overflow-auto border border-n150 rounded-[var(--r)] bg-white">
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} fontFamily="Inter,'Hiragino Sans','Noto Sans JP',sans-serif">
+      <svg width="100%" style={{ maxWidth: W, display: "block" }} viewBox={`0 0 ${W} ${H}`} fontFamily="Inter,'Hiragino Sans','Noto Sans JP',sans-serif">
         <defs>
           <marker id="pdArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto">
             <path d="M0,0 L10,5 L0,10 z" fill="#8a8a98" />
