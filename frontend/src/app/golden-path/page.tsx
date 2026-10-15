@@ -7,6 +7,7 @@ import { InsightBox } from "@/components/ui/InsightBox";
 import { Button, Callout, Card, Chip, Field, Kpi, Notes, Segmented, Select, SmallCell, StateBox } from "@/components/ui/primitives";
 import { DataTable } from "@/components/ui/DataTable";
 import { GoldenPathFlow, type GoldenPathFlowHandle } from "@/components/flow/GoldenPathFlow";
+import { PathDiagram } from "@/components/flow/PathDiagram";
 import { api, ApiError } from "@/lib/api";
 import type { GraphResponse } from "@/lib/types";
 import { useFilters } from "@/store/filters";
@@ -26,6 +27,7 @@ export default function GoldenPathPage() {
   const [customSteps, setCustomSteps] = useState<string>("");
   const flowRef = useRef<GoldenPathFlowHandle>(null);
   const [tall, setTall] = useState(false);
+  const [rankView, setRankView] = useState<"diagram" | "table">("diagram");
 
   // Golden Path initial value for 結果 is 購入者 (once)
   useEffect(() => {
@@ -204,11 +206,14 @@ export default function GoldenPathPage() {
 
       {data?.rankings && (
         <div className="grid grid-cols-2 gap-3 mt-3">
-          <Card title="主要パス（連続／順序保持は共通フィルタに従う）" sub={`分母 n=${num(data.rankings.denominator)}${data.selection ? "（選択後）" : ""}。ユニーク人数ベース。`}>
+          <Card title="主要パス（連続／順序保持は共通フィルタに従う）" sub={`分母 n=${num(data.rankings.denominator)}${data.selection ? "（選択後）" : ""}。ユニーク人数ベース。行クリックでフロー上にハイライト。`} right={<Segmented value={rankView} onChange={setRankView} options={[{ value: "diagram", label: "パス図" }, { value: "table", label: "表" }]} size="sm" />}>
             {(["2", "3", "5"] as const).map((k) => (
               <div key={k} className="mb-3">
                 <div className="section-label mb-1">{k}ステップ</div>
                 {data.rankings!.top_paths[k].note && <div className="text-[10px] text-n500 mb-1">{data.rankings!.top_paths[k].note}</div>}
+                {rankView === "diagram" ? (
+                  <PathDiagram rows={data.rankings!.top_paths[k].rows.slice(0, 8)} onRowClick={(r) => setHighlightPath(r.path)} />
+                ) : (
                 <DataTable
                   rows={data.rankings!.top_paths[k].rows}
                   rowKey={(r) => r.path.join(">")}
@@ -221,6 +226,7 @@ export default function GoldenPathPage() {
                     { key: "occ", header: "延べ回数", num: true, value: (r) => r.occurrences },
                   ]}
                 />
+                )}
               </div>
             ))}
           </Card>
@@ -230,6 +236,9 @@ export default function GoldenPathPage() {
               return (
                 <div key={k} className="mb-3">
                   <div className="section-label mb-1">{k}ステップ｜購入者 n={num(b.buyer_n)}／非購入者 n={num(b.nonbuyer_n)}</div>
+                  {rankView === "diagram" ? (
+                    <PathDiagram statLabel="購入者 人数（率）／非購入者率・差pt" rows={b.rows.slice(0, 8).map((r) => ({ path: r.path, count: r.buyer_count, rate: r.buyer_rate, secondary: `vs ${pct(r.nonbuyer_rate)} ${pt(r.diff_pt)}`, small_cell: r.small_cell }))} onRowClick={(r) => setHighlightPath(r.path)} />
+                  ) : (
                   <DataTable
                     rows={b.rows}
                     rowKey={(r) => r.path.join(">")}
@@ -244,6 +253,7 @@ export default function GoldenPathPage() {
                       { key: "s", header: "", render: (r) => <SmallCell flag={r.small_cell} /> },
                     ]}
                   />
+                  )}
                 </div>
               );
             })}
